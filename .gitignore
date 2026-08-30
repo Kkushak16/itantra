@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Machine Learning Models
+app/src/main/assets/models/
+app/libs/*.aar
+*.tar.bz2

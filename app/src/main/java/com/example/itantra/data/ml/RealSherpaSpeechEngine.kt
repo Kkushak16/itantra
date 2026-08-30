@@ -2,6 +2,15 @@ package com.example.itantra.data.ml
 
 import android.content.Context
 import android.util.Log
+import com.k2fsa.sherpa.onnx.OfflineRecognizer
+import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
+import com.k2fsa.sherpa.onnx.OfflineModelConfig
+import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
+import com.k2fsa.sherpa.onnx.FeatureConfig
+import com.k2fsa.sherpa.onnx.OfflineTts
+import com.k2fsa.sherpa.onnx.OfflineTtsConfig
+import com.k2fsa.sherpa.onnx.OfflineTtsModelConfig
+import com.k2fsa.sherpa.onnx.OfflineTtsVitsModelConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -14,13 +23,25 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
     private var isMockMode = false
     private val mockEngine = MockSpeechEngine()
     private var ready = false
+    
+    private var recognizer: OfflineRecognizer? = null
+    private val ttsEngines = mutableMapOf<String, OfflineTts>()
+
+    private fun assetExists(context: Context, path: String): Boolean {
+        return try {
+            context.assets.open(path).use { true }
+        } catch (e: Exception) {
+            false
+        }
+    }
 
     override suspend fun initialize(context: Context) = withContext(Dispatchers.IO) {
-        val sttModels = try { context.assets.list("models/stt") } catch(e: Exception) { null }
-        val ttsModels = try { context.assets.list("models/tts") } catch(e: Exception) { null }
+        // Check if the core STT model exists
+        val sttExists = assetExists(context, "models/stt/whisper/tiny-encoder.int8.onnx")
+        val enTtsExists = assetExists(context, "models/tts/en/en_US-amy-low.onnx")
         
-        if (sttModels.isNullOrEmpty() || ttsModels.isNullOrEmpty()) {
-            Log.w(TAG, "ONNX models missing in assets/models/. Falling back to Mock Mode.")
+        if (!sttExists || !enTtsExists) {
+            Log.w(TAG, "Core ONNX models missing in assets/models/. Falling back to Mock Mode. stt=$sttExists enTts=$enTtsExists")
             isMockMode = true
             mockEngine.initialize(context)
             ready = true
@@ -28,17 +49,64 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
         }
 
         try {
-            // Attempt to load Sherpa-ONNX via reflection to avoid hard compile-time crashes 
-            // if the AAR dependency fails to resolve from JitPack.
-            val recognizerClass = Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizer")
+            // 1. Initialize Whisper STT (OfflineRecognizer)
+            val config = OfflineRecognizerConfig(
+                featConfig = FeatureConfig(
+                    sampleRate = 16000,
+                    featureDim = 80
+                ),
+                modelConfig = OfflineModelConfig(
+                    whisper = OfflineWhisperModelConfig(
+                        encoder = "models/stt/whisper/tiny-encoder.int8.onnx",
+                        decoder = "models/stt/whisper/tiny-decoder.int8.onnx",
+                        language = "",
+                        task = "transcribe"
+                    ),
+                    tokens = "models/stt/whisper/tiny-tokens.txt",
+                    numThreads = 2,
+                    modelType = "whisper"
+                )
+            )
+            recognizer = OfflineRecognizer(context.assets, config)
+            Log.d(TAG, "STT (Whisper) initialized successfully.")
             
-            // TODO: Actually instantiate OfflineRecognizer and OfflineTts here 
-            // once the models are verified and the AAR is loaded.
+            // 2. Initialize English TTS
+            val enTtsConfig = OfflineTtsConfig(
+                model = OfflineTtsModelConfig(
+                    vits = OfflineTtsVitsModelConfig(
+                        model = "models/tts/en/en_US-amy-low.onnx",
+                        tokens = "models/tts/en/tokens.txt",
+                        dataDir = "models/tts/en/espeak-ng-data"
+                    ),
+                    numThreads = 2
+                )
+            )
+            ttsEngines["en"] = OfflineTts(context.assets, enTtsConfig)
+            Log.d(TAG, "English TTS initialized successfully.")
             
-            Log.d(TAG, "Sherpa-ONNX models found and engine initialized successfully.")
+            // 3. Initialize Hindi TTS (optional — skip gracefully if missing)
+            val hiTtsExists = assetExists(context, "models/tts/hi/hi_IN-swara-low.onnx")
+            if (hiTtsExists) {
+                val hiTtsConfig = OfflineTtsConfig(
+                    model = OfflineTtsModelConfig(
+                        vits = OfflineTtsVitsModelConfig(
+                            model = "models/tts/hi/hi_IN-swara-low.onnx",
+                            tokens = "models/tts/hi/tokens.txt",
+                            dataDir = "models/tts/hi/espeak-ng-data"
+                        ),
+                        numThreads = 2
+                    )
+                )
+                ttsEngines["hi"] = OfflineTts(context.assets, hiTtsConfig)
+                Log.d(TAG, "Hindi TTS initialized successfully.")
+            } else {
+                Log.w(TAG, "Hindi TTS model not found — skipping. Hindi will fall back to English TTS.")
+            }
+            
+            Log.d(TAG, "Sherpa-ONNX engine initialized. STT=OK, TTS(en)=OK, TTS(hi)=${if (hiTtsExists) "OK" else "SKIPPED"}")
             ready = true
         } catch (e: Exception) {
-            Log.e(TAG, "Sherpa-ONNX library not found or failed to load. Falling back to Mock Mode.", e)
+            Log.e(TAG, "Sherpa-ONNX library failed to load. Falling back to Mock Mode.", e)
             isMockMode = true
             mockEngine.initialize(context)
             ready = true
@@ -49,7 +117,21 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
         if (isMockMode) return mockEngine.transcribe(pcmData, language)
         
         return withContext(Dispatchers.Default) {
-            TranscriptionResult("Sherpa-ONNX real transcription not fully hooked up yet.", language, 1.0f)
+            try {
+                val floatSamples = FloatArray(pcmData.size) { pcmData[it] / 32768.0f }
+                val stream = recognizer?.createStream() ?: return@withContext TranscriptionResult("", language, 0.0f)
+                
+                stream.acceptWaveform(floatSamples, 16000)
+                recognizer?.decode(stream)
+                val result = recognizer?.getResult(stream)
+                val text = result?.text ?: ""
+                stream.release()
+                
+                TranscriptionResult(text, language, 1.0f)
+            } catch (e: Exception) {
+                Log.e(TAG, "Transcription error", e)
+                TranscriptionResult("", language, 0.0f)
+            }
         }
     }
 
@@ -57,14 +139,27 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
         if (isMockMode) return mockEngine.synthesize(text, language)
         
         return withContext(Dispatchers.Default) {
-            ShortArray(16000) // 1 second of silence
+            try {
+                val tts = ttsEngines[language] ?: ttsEngines["en"] ?: return@withContext ShortArray(0)
+                val audio = tts.generate(text = text, sid = 0, speed = 1.0f)
+                val samples = audio.samples
+                ShortArray(samples.size) { (samples[it] * 32767.0f).toInt().toShort() }
+            } catch (e: Exception) {
+                Log.e(TAG, "Synthesis error", e)
+                ShortArray(0)
+            }
         }
     }
 
     override fun isReady(): Boolean = ready
 
     override fun release() {
-        if (isMockMode) mockEngine.release()
+        if (isMockMode) {
+            mockEngine.release()
+        } else {
+            recognizer?.release()
+            ttsEngines.values.forEach { it.release() }
+        }
         ready = false
     }
     

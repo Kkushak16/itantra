@@ -36,16 +36,17 @@ If the app cannot find the ONNX models in the `assets/` folder, it will graceful
 
 ### Production (Real Models)
 To enable the real Neural Engine, you must download the models and the native library.
-A helper script is included in the repository root: `download_models.ps1`.
+Helper scripts are included in the repository root: `download_models.ps1` (Windows) and `download_models.sh` (Linux/Mac).
 
-1. Run the script or manually download the recommended models from the [k2-fsa releases](https://github.com/k2-fsa/sherpa-onnx/releases).
-   - **STT (Speech-to-Text):** Download `sherpa-onnx-ncnn-zipformer-en-2023-02-13.tar.bz2` (or the multi-language equivalent).
-   - **TTS (Text-to-Speech):** Download `vits-piper-en_US-amy-low.tar.bz2`.
-2. Extract the STT model files into: `app/src/main/assets/models/stt/`
-3. Extract the TTS model files into: `app/src/main/assets/models/tts/`
-4. Download the latest Android library (`sherpa-onnx-X.X.XX-android.aar`) from k2-fsa and place it in the `app/libs/` directory.
+1. Run the script: `.\download_models.ps1`
+   This will automatically:
+   - Download the official `sherpa-onnx` Android AAR library into `app/libs/`.
+   - Fetch the **Whisper Tiny Multilingual INT8** model (supports English and Hindi) into `app/src/main/assets/models/stt/`.
+   - Fetch the **Piper VITS English** (amy-low) and **Piper VITS Hindi** (swara-low) models into `app/src/main/assets/models/tts/`.
+   
+2. Build the app using Android Studio or Gradle (`./gradlew assembleDebug`).
 
-Once the models and AAR are present, the app will automatically switch from Mock Mode to Production Mode.
+*Note: The app checks for the existence of these models at runtime. If any are missing (or if a download failed), it gracefully falls back to English TTS or the Mock Engine, ensuring the app never crashes.*
 
 ---
 
