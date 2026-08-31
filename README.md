@@ -35,18 +35,20 @@ To allow developers to build and test the app without downloading 100MB+ of ML m
 If the app cannot find the ONNX models in the `assets/` folder, it will gracefully boot into Mock Mode. It will simulate a transmission delay, transcribe a hardcoded SOS message, and generate a 440Hz sine wave beep instead of a human voice on the receiving end.
 
 ### Production (Real Models)
-To enable the real Neural Engine, you must download the models and the native library.
-Helper scripts are included in the repository root: `download_models.ps1` (Windows) and `download_models.sh` (Linux/Mac).
+To enable the real Neural Engine, you must manually download the required models and the native library and place them in the correct directories.
 
-1. Run the script: `.\download_models.ps1`
-   This will automatically:
-   - Download the official `sherpa-onnx` Android AAR library into `app/libs/`.
-   - Fetch the **Whisper Tiny Multilingual INT8** model (supports English and Hindi) into `app/src/main/assets/models/stt/`.
-   - Fetch the **Piper VITS English** (amy-low) and **Piper VITS Hindi** (swara-low) models into `app/src/main/assets/models/tts/`.
-   
-2. Build the app using Android Studio or Gradle (`./gradlew assembleDebug`).
+1. **Download the Sherpa-ONNX Library:**
+   - Download the official `sherpa-onnx-1.13.6.aar` from the Sherpa-ONNX GitHub releases.
+   - Place the `.aar` file directly into `app/libs/`.
 
-*Note: The app checks for the existence of these models at runtime. If any are missing (or if a download failed), it gracefully falls back to English TTS or the Mock Engine, ensuring the app never crashes.*
+2. **Download the Models:**
+   - **Whisper STT (INT8):** Extract the whisper models into `app/src/main/assets/models/stt/whisper/`. *(Note: Be sure to delete the large non-INT8 encoder/decoder files to save memory).*
+   - **Piper English TTS:** Extract the `en_US-amy-low` model into `app/src/main/assets/models/tts/en/`.
+   - **Piper Hindi TTS:** Extract the `hi_IN-priyamvada-medium` model into `app/src/main/assets/models/tts/hi/`.
+
+3. **Build the app** using Android Studio or Gradle (`./gradlew assembleDebug`).
+
+*Note: The app checks for the existence of these models at runtime. If any are missing, it gracefully falls back to English TTS or the Mock Engine, ensuring the app never crashes.*
 
 ---
 

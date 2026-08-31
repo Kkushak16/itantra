@@ -88,7 +88,7 @@ class TransceiverEngine(private val context: Context) {
                 speechEngine.initialize(context)
                 _isMockModeEngine.value = (speechEngine as? RealSherpaSpeechEngine)?.isInMockMode() ?: true
                 Log.d(TAG, "TransceiverEngine initialized (MockMode=${_isMockModeEngine.value})")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Failed to initialize speech engine: ${e.message}", e)
             }
         }

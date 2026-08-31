@@ -59,7 +59,7 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
                     whisper = OfflineWhisperModelConfig(
                         encoder = "models/stt/whisper/tiny-encoder.int8.onnx",
                         decoder = "models/stt/whisper/tiny-decoder.int8.onnx",
-                        language = "",
+                        language = "en",
                         task = "transcribe"
                     ),
                     tokens = "models/stt/whisper/tiny-tokens.txt",
@@ -85,12 +85,12 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
             Log.d(TAG, "English TTS initialized successfully.")
             
             // 3. Initialize Hindi TTS (optional — skip gracefully if missing)
-            val hiTtsExists = assetExists(context, "models/tts/hi/hi_IN-swara-low.onnx")
+            val hiTtsExists = assetExists(context, "models/tts/hi/hi_IN-priyamvada-medium.onnx")
             if (hiTtsExists) {
                 val hiTtsConfig = OfflineTtsConfig(
                     model = OfflineTtsModelConfig(
                         vits = OfflineTtsVitsModelConfig(
-                            model = "models/tts/hi/hi_IN-swara-low.onnx",
+                            model = "models/tts/hi/hi_IN-priyamvada-medium.onnx",
                             tokens = "models/tts/hi/tokens.txt",
                             dataDir = "models/tts/hi/espeak-ng-data"
                         ),
@@ -105,7 +105,7 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
             
             Log.d(TAG, "Sherpa-ONNX engine initialized. STT=OK, TTS(en)=OK, TTS(hi)=${if (hiTtsExists) "OK" else "SKIPPED"}")
             ready = true
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Sherpa-ONNX library failed to load. Falling back to Mock Mode.", e)
             isMockMode = true
             mockEngine.initialize(context)
