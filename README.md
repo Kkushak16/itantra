@@ -87,12 +87,29 @@ Run one of the following commands in the project root:
 
 - **For Physical P2P Peer-to-Peer Deployment (`prod` flavor):**
   ```bash
+  # Option A: Build and install directly to connected phone/emulator
   ./gradlew installProdDebug
+
+  # Option B: Generate standalone APK file (no device required)
+  ./gradlew assembleProdDebug
+  # APK location: app/build/outputs/apk/prod/debug/app-prod-debug.apk
   ```
 - **For Single-Device / Simulator Testing (`mock` flavor):**
   ```bash
+  # Option A: Build and install directly to connected phone/emulator
   ./gradlew installMockDebug
+
+  # Option B: Generate standalone APK file (no device required)
+  ./gradlew assembleMockDebug
+  # APK location: app/build/outputs/apk/mock/debug/app-mock-debug.apk
   ```
+
+> [!TIP]
+> **Troubleshooting `DeviceException: No connected devices!`**
+> If you get `No connected devices!` when running `installProdDebug` or `installMockDebug`, it means no phone/emulator is currently connected via USB/WiFi debugging.
+> - **To install to a phone**: Plug in your phone via USB, enable **USB Debugging** in Developer Options, and re-run `installProdDebug` or `installMockDebug`.
+> - **To get the APK without connecting a phone**: Run `assembleProdDebug` or `assembleMockDebug`. The resulting `.apk` file will be created in `app/build/outputs/apk/prod/debug/` or `app/build/outputs/apk/mock/debug/`. You can send this file to your phone and install it manually!
+
 
 #### 4. Build & Install via Android Studio
 1. Open the project folder in **Android Studio**.
