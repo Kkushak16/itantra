@@ -84,11 +84,4 @@ class MainActivity : ComponentActivity() {
             permissionLauncher.launch(notGranted.toTypedArray())
         }
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (isFinishing) {
-            viewModel.engine.release()
-        }
-    }
 }

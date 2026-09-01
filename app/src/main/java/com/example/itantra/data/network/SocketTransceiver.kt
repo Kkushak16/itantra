@@ -6,6 +6,7 @@ import com.example.itantra.domain.ConnectionState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -47,7 +48,7 @@ class SocketTransceiver : P2PTransceiver {
     private var isRunning = false
 
     private val udpBeacon = UdpBeacon()
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var broadcastJob: Job? = null
     private var scanJob: Job? = null
 

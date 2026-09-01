@@ -163,7 +163,9 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
             mockEngine.release()
         } else {
             recognizer?.release()
+            recognizer = null
             ttsEngines.values.forEach { it.release() }
+            ttsEngines.clear()
         }
         ready = false
     }

@@ -12,6 +12,7 @@ import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.SocketTimeoutException
 import kotlin.coroutines.coroutineContext
 
@@ -68,8 +69,11 @@ class UdpBeacon {
     fun listenForBeacons(): Flow<PeerInfo> = flow {
         var listenSocket: DatagramSocket? = null
         try {
-            listenSocket = DatagramSocket(BEACON_PORT)
-            listenSocket.soTimeout = 3000
+            listenSocket = DatagramSocket(null).apply {
+                reuseAddress = true
+                bind(InetSocketAddress(BEACON_PORT))
+                soTimeout = 3000
+            }
             
             val buffer = ByteArray(1024)
             Log.d(TAG, "Listening for UDP beacons on port $BEACON_PORT")
