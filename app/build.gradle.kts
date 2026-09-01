@@ -39,7 +39,7 @@ android {
     }
     
     androidResources {
-        noCompress += listOf("onnx", "ort")
+        noCompress += listOf("onnx", "ort", "txt", "data", "phontab", "phonindex", "phondata", "intonations")
     }
 }
 

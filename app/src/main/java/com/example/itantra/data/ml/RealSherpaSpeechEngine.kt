@@ -36,12 +36,17 @@ class RealSherpaSpeechEngine(private val context: Context) : SpeechEngine {
     }
 
     override suspend fun initialize(context: Context) = withContext(Dispatchers.IO) {
-        // Check if the core STT model exists
-        val sttExists = assetExists(context, "models/stt/whisper/tiny-encoder.int8.onnx")
+        // Check if the core STT and TTS models exist
+        val sttEncoderExists = assetExists(context, "models/stt/whisper/tiny-encoder.int8.onnx")
+        val sttDecoderExists = assetExists(context, "models/stt/whisper/tiny-decoder.int8.onnx")
+        val sttTokensExists = assetExists(context, "models/stt/whisper/tiny-tokens.txt")
         val enTtsExists = assetExists(context, "models/tts/en/en_US-amy-low.onnx")
+        val enTtsTokensExists = assetExists(context, "models/tts/en/tokens.txt")
         
-        if (!sttExists || !enTtsExists) {
-            Log.w(TAG, "Core ONNX models missing in assets/models/. Falling back to Mock Mode. stt=$sttExists enTts=$enTtsExists")
+        val allRequiredModelsExist = sttEncoderExists && sttDecoderExists && sttTokensExists && enTtsExists && enTtsTokensExists
+
+        if (!allRequiredModelsExist) {
+            Log.w(TAG, "Core ONNX models missing in assets/models/. Falling back to Mock Mode. (Encoder: $sttEncoderExists, Decoder: $sttDecoderExists, STT Tokens: $sttTokensExists, EN TTS: $enTtsExists, EN TTS Tokens: $enTtsTokensExists)")
             isMockMode = true
             mockEngine.initialize(context)
             ready = true
