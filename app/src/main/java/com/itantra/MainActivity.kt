@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var sessionRepository: SessionRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate()
+        super.onCreate(savedInstanceState)
 
         // Start Foreground Service for connectivity & background SOS
         ItantraForegroundService.startService(this)

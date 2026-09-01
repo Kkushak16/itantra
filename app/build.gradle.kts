@@ -112,6 +112,17 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 }
 
+tasks.matching { it.name.startsWith("kapt") && !it.name.contains("GenerateStubs") }.configureEach {
+    val tmpDir = layout.buildDirectory.get().asFile.resolve("tmp").apply { mkdirs() }.absolutePath
+    try {
+        val getter = this::class.java.getMethod("getKaptProcessJvmArgs")
+        @Suppress("UNCHECKED_CAST")
+        val args = getter.invoke(this) as? org.gradle.api.provider.ListProperty<String>
+        args?.add("-Dorg.sqlite.tmpdir=$tmpDir")
+        args?.add("-Djava.io.tmpdir=$tmpDir")
+    } catch (_: Exception) {}
+}
+
 kapt {
     arguments {
         arg("room.schemaLocation", "$projectDir/schemas")

@@ -68,7 +68,7 @@ class AndroidSttEngine @Inject constructor(
         override fun onResults(results: Bundle?) {
             val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             val text = matches?.firstOrNull()
-            if (!text.isNull_orEmpty()) {
+            if (!text.isNullOrEmpty()) {
                 _state.value = SttState.Result(text)
             } else {
                 _state.value = SttState.Error("No text transcribed.")
