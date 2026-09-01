@@ -55,6 +55,128 @@ iTantra plays emergency SOS alert siren audio on **`AudioManager.STREAM_ALARM`**
 
 ---
 
+## How to Run on Mobile Device
+
+### Prerequisites
+- **Android Studio:** Jellyfish / Koala / Ladybug or newer.
+- **Java Development Kit (JDK):** Version 17.
+- **Android Physical Device:** Android 8.0 (API 26) or higher, with Bluetooth and Wi-Fi enabled.
+- **USB Cable / Wireless Debugging:** To connect your phone to your computer.
+
+---
+
+### Step-by-Step Installation
+
+#### 1. Enable Developer Options & USB Debugging on Mobile
+1. Open **Settings** on your Android phone.
+2. Go to **About Phone** and tap **Build Number** 7 times until you see `"You are now a developer!"`.
+3. Go back to **Settings > System > Developer options**.
+4. Enable **USB debugging** (and **Install via USB** if present on MIUI/ColorOS/OxygenOS).
+
+#### 2. Connect Your Phone to Computer
+- Plug in your phone via USB.
+- On your phone, tap **Allow USB Debugging** when prompted (check *"Always allow from this computer"*).
+- Verify connection in your terminal:
+  ```bash
+  adb devices
+  ```
+  *(Your device ID should appear in the list).*
+
+#### 3. Build & Install via Command Line
+Run one of the following commands in the project root:
+
+- **For Physical P2P Peer-to-Peer Deployment (`prod` flavor):**
+  ```bash
+  ./gradlew installProdDebug
+  ```
+- **For Single-Device / Simulator Testing (`mock` flavor):**
+  ```bash
+  ./gradlew installMockDebug
+  ```
+
+#### 4. Build & Install via Android Studio
+1. Open the project folder in **Android Studio**.
+2. Select **Build Variants** tab on the left margin.
+3. Select `prodDebug` (for real physical hardware radios) or `mockDebug` (for simulated testing).
+4. Select your connected device from the top target device dropdown menu.
+5. Click the green **Run** button (or press `Shift + F10`).
+
+#### 5. Grant Permissions on First Launch
+Upon launching iTantra on your phone:
+1. Tap **Grant Permissions**.
+2. Allow permissions for **Nearby Devices**, **Location** (required by Android OS for Bluetooth/Wi-Fi Direct discovery), **Microphone** (for voice recording), and **Notifications** (for background P2P service).
+
+---
+
+## How to Use iTantra
+
+### 1. Connecting Peers
+- **Prod Mode (Two Physical Phones):** Open iTantra on both physical phones with Bluetooth & Wi-Fi turned on (no SIM or internet needed). The app will automatically discover and form a `P2P_CLUSTER` mesh connection.
+- **Mock Mode (Single Phone / Demo):** Open the app in `mock` flavor. The built-in simulator automatically spawns canned peer handshakes for testing without needing a second device.
+
+### 2. Push-to-Talk (PTT) Messaging
+1. Go to the **Talk** tab.
+2. **Press and Hold** the large circular Mic button while speaking your message.
+3. Release the button when finished.
+4. The app instantly transcribes your voice to text offline (via Android STT / Vosk) and broadcasts the payload to all connected peers over the P2P radio.
+
+### 3. Hands-Free Audio Playback
+- When an incoming message is received from a peer, the recipient's phone automatically converts the text payload back to speech via on-device **Text-to-Speech (TTS)** and plays it out loud.
+- Full transcript history is saved to the local **Room Database**.
+
+### 4. Triggering Emergency SOS Siren
+1. Tap the **SOS** button on the bottom bar or top header.
+2. Tap **Confirm Emergency Siren** (or long-press the SOS trigger).
+3. The app triggers a high-decibel siren on `STREAM_ALARM` max volume, strobe flashlight pulses, and heavy vibration across all connected devices in the mesh network.
+4. Tap **Stop Siren** to deactivate.
+
+---
+
+## How to Push Changes to the Repository
+
+Follow these steps to stage, commit, and push updates to the remote GitHub repository (`https://github.com/Kkushak16/itantra.git`):
+
+### 1. Verify Remote Setup
+Ensure your local workspace points to the correct GitHub repository:
+```bash
+git remote -v
+```
+If `origin` is missing or incorrect, set it using:
+```bash
+git remote add origin https://github.com/Kkushak16/itantra.git
+```
+
+### 2. Check Repository Status
+See changed, created, or deleted files:
+```bash
+git status
+```
+
+### 3. Stage & Commit Changes
+Stage all modified and new files:
+```bash
+git add -A
+```
+
+Create a descriptive commit message following conventional commit guidelines:
+```bash
+git commit -m "feat: add mobile installation guide and git workflow to README"
+```
+
+### 4. Push to Remote Branch
+Push your commit to the `main` branch on GitHub:
+```bash
+git push origin main
+```
+
+If working on a feature branch (e.g., `feature/p2p-optimization`):
+```bash
+git checkout -b feature/p2p-optimization
+git push -u origin feature/p2p-optimization
+```
+
+---
+
 ## How to Run the Demo
 
 For a step-by-step 2-minute demonstration script for judges or first responders, see [DEMO_SCRIPT.md](./DEMO_SCRIPT.md).
