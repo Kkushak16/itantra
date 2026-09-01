@@ -37,21 +37,29 @@ class ItantraForegroundService : Service() {
         const val ACTION_STOP = "ACTION_STOP_SERVICE"
 
         fun startService(context: Context) {
-            val intent = Intent(context, ItantraForegroundService::class.java).apply {
-                action = ACTION_START
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                val intent = Intent(context, ItantraForegroundService::class.java).apply {
+                    action = ACTION_START
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
         fun stopService(context: Context) {
-            val intent = Intent(context, ItantraForegroundService::class.java).apply {
-                action = ACTION_STOP
+            try {
+                val intent = Intent(context, ItantraForegroundService::class.java).apply {
+                    action = ACTION_STOP
+                }
+                context.startService(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            context.startService(intent)
         }
     }
 
@@ -63,13 +71,29 @@ class ItantraForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                try {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
                 stopSelf()
                 return START_NOT_STICKY
             }
             else -> {
                 val notification = buildNotification("iTantra Active", "Searching or connected over P2P network")
-                startForeground(NOTIFICATION_ID, notification)
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(
+                            NOTIFICATION_ID,
+                            notification,
+                            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                        )
+                    } else {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
                 observeConnectionState()
             }
         }
