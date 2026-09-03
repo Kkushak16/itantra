@@ -16,7 +16,12 @@ class AndroidTtsEngine @Inject constructor(
     @ApplicationContext private val context: Context
 ) : TextToSpeechEngine, TextToSpeech.OnInitListener {
 
-    private var tts: TextToSpeech? = TextToSpeech(context, this)
+    private var tts: TextToSpeech? = try {
+        TextToSpeech(context, this)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
     private var isInitialized = false
 
     private val _speakingState = MutableStateFlow<SpeakingState>(SpeakingState.Idle)

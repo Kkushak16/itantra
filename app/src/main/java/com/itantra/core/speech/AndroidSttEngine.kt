@@ -87,37 +87,50 @@ class AndroidSttEngine @Inject constructor(
             return
         }
 
-        if (SpeechRecognizer.isRecognitionAvailable(context)) {
-            if (speechRecognizer == null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
-                ) {
-                    speechRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-                } else {
-                    speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
+        try {
+            if (SpeechRecognizer.isRecognitionAvailable(context)) {
+                if (speechRecognizer == null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+                    ) {
+                        speechRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+                    } else {
+                        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
+                    }
+                    speechRecognizer?.setRecognitionListener(recognitionListener)
                 }
-                speechRecognizer?.setRecognitionListener(recognitionListener)
-            }
 
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                }
+                _state.value = SttState.Listening
+                speechRecognizer?.startListening(intent)
+            } else {
+                useVoskFallback = true
+                voskFallbackEngine.startListening()
             }
-            _state.value = SttState.Listening
-            speechRecognizer?.startListening(intent)
-        } else {
+        } catch (e: Exception) {
+            // SpeechRecognizer can throw if system service unavailable or
+            // called from wrong thread. Fall back to Vosk silently.
+            e.printStackTrace()
             useVoskFallback = true
             voskFallbackEngine.startListening()
         }
     }
 
     override fun stopListening() {
-        if (useVoskFallback) {
-            voskFallbackEngine.stopListening()
-        } else {
-            _state.value = SttState.Processing
-            speechRecognizer?.stopListening()
+        try {
+            if (useVoskFallback) {
+                voskFallbackEngine.stopListening()
+            } else {
+                _state.value = SttState.Processing
+                speechRecognizer?.stopListening()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            _state.value = SttState.Idle
         }
     }
 }

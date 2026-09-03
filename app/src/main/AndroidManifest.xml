@@ -18,8 +18,9 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="tiramisu" />
 
-    <!-- Fine Location required by Nearby Connections on legacy Android versions -->
+    <!-- Fine/Coarse Location required by Nearby Connections on legacy Android versions -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!-- Audio recording for offline speech-to-text pipeline -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />

@@ -1,6 +1,5 @@
 package com.itantra.core.radio
 
-import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.net.wifi.WifiManager
@@ -20,18 +19,38 @@ data class RadioStatus(
 class RadioStateMonitor @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val _radioStatus = MutableStateFlow(checkRadioState())
+    // IMPORTANT: The StateFlow must be initialized directly from readRadioState() — a pure
+    // read that does NOT write back to the flow. The previous code called checkRadioState()
+    // here, which itself wrote _radioStatus.value while _radioStatus was still null during
+    // its own initializer, producing a NullPointerException that crashed the app on launch.
+    private val _radioStatus = MutableStateFlow(readRadioState())
     val radioStatus: StateFlow<RadioStatus> = _radioStatus.asStateFlow()
 
     fun checkRadioState(): RadioStatus {
-        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-        val isWifiOn = wifiManager?.isWifiEnabled == true
-
-        val bluetoothManager = context.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-        val isBluetoothOn = bluetoothManager?.adapter?.isEnabled == true
-
-        val status = RadioStatus(isWifiOn = isWifiOn, isBluetoothOn = isBluetoothOn)
+        val status = readRadioState()
         _radioStatus.value = status
         return status
+    }
+
+    private fun readRadioState(): RadioStatus {
+        var isWifiOn = false
+        try {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            isWifiOn = wifiManager?.isWifiEnabled == true
+        } catch (_: Exception) {
+            // permission denied or hardware unavailable — treat as off
+        }
+
+        var isBluetoothOn = false
+        try {
+            val bluetoothManager = context.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            // On Android 12+ (API 31), BluetoothAdapter.isEnabled requires BLUETOOTH_CONNECT
+            // runtime permission. If not yet granted, this throws SecurityException.
+            isBluetoothOn = bluetoothManager?.adapter?.isEnabled == true
+        } catch (_: Exception) {
+            // BLUETOOTH_CONNECT permission not yet granted — treat as off
+        }
+
+        return RadioStatus(isWifiOn = isWifiOn, isBluetoothOn = isBluetoothOn)
     }
 }

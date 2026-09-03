@@ -115,11 +115,17 @@ class NearbyTransport @Inject constructor(
         }
 
         _connectionState.value = ConnectionState.Advertising
-        val options = AdvertisingOptions.Builder().setStrategy(Strategy.P2P_CLUSTER).build()
-        client.startAdvertising(localName, SERVICE_ID, connectionLifecycleCallback, options)
-            .addOnFailureListener { e ->
-                _connectionState.value = ConnectionState.Error("Failed to start host mode: ${e.localizedMessage ?: "Check radios"}")
-            }
+        try {
+            val options = AdvertisingOptions.Builder().setStrategy(Strategy.P2P_CLUSTER).build()
+            client.startAdvertising(localName, SERVICE_ID, connectionLifecycleCallback, options)
+                .addOnFailureListener { e ->
+                    _connectionState.value = ConnectionState.Error("Failed to start host mode: ${e.localizedMessage ?: "Check radios"}")
+                }
+        } catch (e: SecurityException) {
+            _connectionState.value = ConnectionState.Error("Missing permissions for P2P hosting. Grant Nearby Devices permission.")
+        } catch (e: Exception) {
+            _connectionState.value = ConnectionState.Error("Host mode error: ${e.localizedMessage ?: "Unknown"}")
+        }
     }
 
     override suspend fun startScanning() {
@@ -133,37 +139,62 @@ class NearbyTransport @Inject constructor(
         }
 
         _connectionState.value = ConnectionState.Discovering
-        val options = DiscoveryOptions.Builder().setStrategy(Strategy.P2P_CLUSTER).build()
-        client.startDiscovery(SERVICE_ID, endpointDiscoveryCallback, options)
-            .addOnFailureListener { e ->
-                _connectionState.value = ConnectionState.Error("Failed to start scanning: ${e.localizedMessage ?: "Check radios"}")
-            }
+        try {
+            val options = DiscoveryOptions.Builder().setStrategy(Strategy.P2P_CLUSTER).build()
+            client.startDiscovery(SERVICE_ID, endpointDiscoveryCallback, options)
+                .addOnFailureListener { e ->
+                    _connectionState.value = ConnectionState.Error("Failed to start scanning: ${e.localizedMessage ?: "Check radios"}")
+                }
+        } catch (e: SecurityException) {
+            _connectionState.value = ConnectionState.Error("Missing permissions for P2P scanning. Grant Nearby Devices permission.")
+        } catch (e: Exception) {
+            _connectionState.value = ConnectionState.Error("Scan error: ${e.localizedMessage ?: "Unknown"}")
+        }
     }
 
     override suspend fun connectTo(peer: PeerInfo) {
-        client.requestConnection(peer.name, peer.endpointId, connectionLifecycleCallback)
-            .addOnFailureListener { e ->
-                _connectionState.value = ConnectionState.Error("Connection request failed: ${e.localizedMessage ?: "Try again"}")
-            }
+        try {
+            client.requestConnection(peer.name, peer.endpointId, connectionLifecycleCallback)
+                .addOnFailureListener { e ->
+                    _connectionState.value = ConnectionState.Error("Connection request failed: ${e.localizedMessage ?: "Try again"}")
+                }
+        } catch (e: SecurityException) {
+            _connectionState.value = ConnectionState.Error("Missing permissions for P2P connection.")
+        } catch (e: Exception) {
+            _connectionState.value = ConnectionState.Error("Connection error: ${e.localizedMessage ?: "Unknown"}")
+        }
     }
 
     override suspend fun send(payload: ByteArray): Boolean {
         val target = activeEndpointId ?: return false
-        client.sendPayload(target, Payload.fromBytes(payload))
-        return true
+        return try {
+            client.sendPayload(target, Payload.fromBytes(payload))
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 
     override suspend fun disconnect() {
-        activeEndpointId?.let { client.disconnectFromEndpoint(it) }
-        activeEndpointId = null
-        client.stopAdvertising()
-        client.stopDiscovery()
+        try {
+            activeEndpointId?.let { client.disconnectFromEndpoint(it) }
+            activeEndpointId = null
+            client.stopAdvertising()
+            client.stopDiscovery()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         _connectionState.value = ConnectionState.Disconnected
     }
 
     override suspend fun stop() {
         disconnect()
-        client.stopAllEndpoints()
+        try {
+            client.stopAllEndpoints()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         _connectionState.value = ConnectionState.Idle
     }
 }

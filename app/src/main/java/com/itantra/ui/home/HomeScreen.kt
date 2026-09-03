@@ -1,6 +1,7 @@
 package com.itantra.ui.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -69,9 +70,12 @@ fun HomeScreen(
     val connectionState by viewModel.connectionState.collectAsState()
     val discoveredPeers by viewModel.discoveredPeers.collectAsState()
 
-    // Auto-navigate to Talk screen if connected
-    if (connectionState is ConnectionState.Connected) {
-        onNavigateToTalk()
+    // Auto-navigate to Talk screen if connected (must be in LaunchedEffect to avoid
+    // recomposition-triggered navigation crashes — IllegalStateException)
+    LaunchedEffect(connectionState) {
+        if (connectionState is ConnectionState.Connected) {
+            onNavigateToTalk()
+        }
     }
 
     Surface(

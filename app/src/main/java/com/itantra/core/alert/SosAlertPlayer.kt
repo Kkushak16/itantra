@@ -69,8 +69,11 @@ class RealSosAlertPlayer @Inject constructor(
                         .build()
                 )
                 isLooping = true
-                prepare()
-                start()
+                setVolume(1.0f, 1.0f)
+                // Use prepareAsync to avoid ANR when alarm URI is slow to resolve
+                setOnPreparedListener { mp -> mp.start() }
+                setOnErrorListener { _, _, _ -> true } // Suppress error propagation
+                prepareAsync()
             }
         } catch (e: Exception) {
             e.printStackTrace()

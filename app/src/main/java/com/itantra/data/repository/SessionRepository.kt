@@ -72,32 +72,56 @@ class SessionRepository @Inject constructor(
     init {
         // Listen to incoming network payloads
         scope.launch {
-            transport.incomingPayloads.collect { bytes ->
-                handleIncomingPayload(bytes)
+            try {
+                transport.incomingPayloads.collect { bytes ->
+                    try {
+                        handleIncomingPayload(bytes)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
         // Listen to STT results
         scope.launch {
-            sttEngine.state.collect { state ->
-                if (state is SttState.Result) {
-                    sendVoiceMessage(state.text)
+            try {
+                sttEngine.state.collect { state ->
+                    if (state is SttState.Result) {
+                        try {
+                            sendVoiceMessage(state.text)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
         // Update database when peer connects
         scope.launch {
-            connectionState.collect { state ->
-                if (state is ConnectionState.Connected) {
-                    peerDao.insertPeer(
-                        PeerEntity(
-                            endpointId = state.endpointId,
-                            name = state.peerName,
-                            lastConnectedMs = System.currentTimeMillis()
-                        )
-                    )
+            try {
+                connectionState.collect { state ->
+                    if (state is ConnectionState.Connected) {
+                        try {
+                            peerDao.insertPeer(
+                                PeerEntity(
+                                    endpointId = state.endpointId,
+                                    name = state.peerName,
+                                    lastConnectedMs = System.currentTimeMillis()
+                                )
+                            )
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
